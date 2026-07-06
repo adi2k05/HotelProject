@@ -3,45 +3,60 @@ import HotelCard from '../components/HotelCard'
 
 export default function HotelListing() {
 
-    let PAGE_SIZE = 12
-    let [hotels, setHotels] = useState([])
-    let [total, setTotal] = useState(0)
-    let [current, setCurrent] = useState(0)
-    let [loading, setLoading] = useState(true)
-    let [search, setSearch] = useState('')
-    let [searchInput, setSearchInput] = useState('')
+    const PAGE_SIZE = 12
 
-    let url = `https://demohotelsapi.pythonanywhere.com/hotels/?limit=${PAGE_SIZE}&skip=${current * PAGE_SIZE}`
+    const [hotels, setHotels] = useState([])
+    const [total, setTotal] = useState(0)
+    const [current, setCurrent] = useState(0)
+    const [loading, setLoading] = useState(true)
+
+    const [search, setSearch] = useState('')
+    const [searchInput, setSearchInput] = useState('')
 
     async function dataFetch() {
+
         setLoading(true)
-        let res = await fetch(url)
-        let hotelData = await res.json()
-        setTotal(hotelData.count)
+
+        let url = ''
+
+        if (search.trim() === '') {
+            url = `https://demohotelsapi.pythonanywhere.com/hotels/?limit=${PAGE_SIZE}&skip=${current * PAGE_SIZE}`
+        }
+        else {
+            url = `https://demohotelsapi.pythonanywhere.com/hotels/?search=${encodeURIComponent(search)}`
+        }
+
+        const res = await fetch(url)
+        const hotelData = await res.json()
+
         setHotels(hotelData.data)
+
+        if (search.trim() === '') {
+            setTotal(hotelData.count)
+        }
+        else {
+            setTotal(hotelData.returned)
+        }
+
         setLoading(false)
     }
 
     useEffect(() => {
         dataFetch()
-    }, [current])
+    }, [current, search])
 
-    let noOfPages = Math.ceil(total / PAGE_SIZE)
-
-    let filteredHotels = hotels.filter((el) =>
-        el.name.toLowerCase().includes(search.toLowerCase()) ||
-        el.location.toLowerCase().includes(search.toLowerCase())
-    )
+    const noOfPages = Math.ceil(total / PAGE_SIZE)
 
     function handleSearch(e) {
         e.preventDefault()
-        setSearch(searchInput)
         setCurrent(0)
+        setSearch(searchInput.trim())
     }
 
     function clearSearch() {
         setSearch('')
         setSearchInput('')
+        setCurrent(0)
     }
 
     return (
@@ -49,9 +64,13 @@ export default function HotelListing() {
 
             <div className='hero-section'>
                 <h1 className='hero-title'>Find Your Perfect Stay</h1>
-                <p className='hero-sub'>500+ hotels across India — business, leisure, luxury & budget</p>
+
+                <p className='hero-sub'>
+                    500+ hotels across India — business, leisure, luxury & budget
+                </p>
 
                 <form className='search-bar' onSubmit={handleSearch}>
+
                     <input
                         type='text'
                         placeholder='Search by hotel name or city...'
@@ -59,17 +78,32 @@ export default function HotelListing() {
                         onChange={(e) => setSearchInput(e.target.value)}
                         className='search-input'
                     />
-                    <button type='submit' className='search-btn'>Search</button>
+
+                    <button
+                        type='submit'
+                        className='search-btn'
+                    >
+                        Search
+                    </button>
+
                     {search && (
-                        <button type='button' onClick={clearSearch} className='clear-btn'>✕ Clear</button>
+                        <button
+                            type='button'
+                            className='clear-btn'
+                            onClick={clearSearch}
+                        >
+                            ✕ Clear
+                        </button>
                     )}
+
                 </form>
             </div>
 
             <div className='result-info'>
-                {search
-                    ? `Showing ${filteredHotels.length} result(s) for "${search}"`
-                    : `Showing ${hotels.length} of ${total} hotels`
+                {
+                    search
+                        ? `Showing ${hotels.length} result(s) for "${search}"`
+                        : `Showing ${hotels.length} of ${total} hotels`
                 }
             </div>
 
@@ -80,61 +114,87 @@ export default function HotelListing() {
                 </div>
             )}
 
-            {!loading && (
+            {!loading && hotels.length > 0 && (
+
                 <div className='hotel-grid'>
-                    {filteredHotels.map((el) => (
+
+                    {hotels.map((hotel) => (
+
                         <HotelCard
-                            key={el.id}
-                            id={el.id}
-                            name={el.name}
-                            location={el.location}
-                            thumbnail={el.thumbnail}
-                            price={el.price}
-                            rating={el.rating}
-                            description={el.description}
+                            key={hotel.id}
+                            id={hotel.id}
+                            name={hotel.name}
+                            location={hotel.location}
+                            thumbnail={hotel.thumbnail}
+                            price={hotel.price}
+                            rating={hotel.rating}
+                            description={hotel.description}
                         />
+
                     ))}
+
                 </div>
+
             )}
 
-            {!loading && filteredHotels.length === 0 && (
+            {!loading && hotels.length === 0 && (
+
                 <div className='empty-state'>
+
                     <p>😕 No hotels found for "{search}"</p>
-                    <button onClick={clearSearch} className='view-btn'>Show all hotels</button>
+
+                    <button
+                        className='view-btn'
+                        onClick={clearSearch}
+                    >
+                        Show all hotels
+                    </button>
+
                 </div>
+
             )}
 
-            {!search && !loading && (
+            {!loading && !search && (
+
                 <div className='pagination'>
+
                     <button
                         className='page-btn'
-                        onClick={() => setCurrent(current - 1)}
                         disabled={current === 0}
+                        onClick={() => setCurrent(current - 1)}
                     >
                         ← Prev
                     </button>
 
                     {
-                        Array.from({ length: noOfPages }, (_, i) => i).map((el) => (
+                        Array.from(
+                            { length: noOfPages },
+                            (_, i) => i
+                        ).map((page) => (
+
                             <button
-                                key={el}
-                                className={`page-btn ${current === el ? 'active' : ''}`}
-                                onClick={() => { setCurrent(el) }}
+                                key={page}
+                                className={`page-btn ${current === page ? 'active' : ''}`}
+                                onClick={() => setCurrent(page)}
                             >
-                                {el + 1}
+                                {page + 1}
                             </button>
+
                         ))
                     }
 
                     <button
                         className='page-btn'
-                        onClick={() => setCurrent(current + 1)}
                         disabled={current === noOfPages - 1}
+                        onClick={() => setCurrent(current + 1)}
                     >
                         Next →
                     </button>
+
                 </div>
+
             )}
+
         </div>
     )
 }
